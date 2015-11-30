@@ -1,0 +1,27 @@
+{
+  "name": "markend",
+  "version": "0.0.1",
+  "description": "Markend parser",
+  "main": "src/markend.js",
+  "scripts": {
+    "test": "node test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zmxv/markend.git"
+  },
+  "keywords": [
+    "markend",
+    "markup",
+    "markdown"
+  ],
+  "author": "Zhen Wang <z@zmxv.com> (http://blog.zmxv.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/zmxv/markend/issues"
+  },
+  "homepage": "https://github.com/zmxv/markend#readme",
+  "devDependencies": {
+    "tape": "^4.2.2"
+  }
+}
