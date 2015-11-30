@@ -7,6 +7,7 @@ Markend.charmap = function(charset) {
 };
 
 const WS = Markend.charmap(' \t'); // whitespace
+const NOT_ID = Markend.charmap(' \t\n\\.'); // identifier blacklist
 
 const BS = '\\'.charCodeAt(0); // backslash
 const NL = '\n'.charCodeAt(0); // new line
@@ -32,10 +33,11 @@ Markend.prototype.eof = function() {
 Markend.prototype.matchLine = function() {
   this.matchCharSeq(WS);
   if (this.matchCharCode(BS)) {
+		var func = this.matchIdentifier();
     this.matchCharSeq(WS);
     if (this.matchLineEnd()) {
       this.endChunk();
-      this._func = '';
+      this._func = func;
       this._attr = {};
       this._head = this._tail = this._p;
       return;
@@ -60,15 +62,20 @@ Markend.prototype.matchLineEnd = function() {
   return this.eof() || (this._src.charCodeAt(this._p) === NL && !!++this._p);
 };
 
+Markend.prototype.matchIdentifier = function() {
+	var pos = this._p;
+	return this._src.substr(pos, this.matchCharSeq(NOT_ID, 1));
+};
+
 Markend.prototype.matchCharCode = function(cc) {
   return this._src.charCodeAt(this._p) === cc ? (this._p++, 1) : 0;
 };
 
-Markend.prototype.matchCharSeq = function(cs) {
+Markend.prototype.matchCharSeq = function(cs, not) {
   var pos = this._p;
   while (!this.eof()) {
     var cc = this._src.charCodeAt(this._p);
-    if (cs[cc]) {
+    if (!cs[cc] ^ !not) {
       this._p++;
     } else {
       break;
