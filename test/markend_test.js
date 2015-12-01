@@ -16,7 +16,8 @@ test('parse', function(t) {
     'anon',
     'anon-two',
     'anon-ws',
-		'named',
+    'named',
+    'attr',
   ];
   tcs.map(function(tc) {
     var input = fs.readFileSync('test/data/' + tc + '.mend', 'utf-8');

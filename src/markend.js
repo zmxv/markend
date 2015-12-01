@@ -8,9 +8,12 @@ Markend.charmap = function(charset) {
 
 const WS = Markend.charmap(' \t'); // whitespace
 const NOT_ID = Markend.charmap(' \t\n\\.'); // identifier blacklist
+const NOT_ATTR_KEY = Markend.charmap(' \t\n\\='); // attribute key blacklist
+const NOT_ATTR_VAL = Markend.charmap(' \t\n\\'); // attribute value blacklist
 
 const BS = '\\'.charCodeAt(0); // backslash
 const NL = '\n'.charCodeAt(0); // new line
+const EQ = '='.charCodeAt(0); // equal sign
 
 Markend.prototype.parse = function(src) {
   this._src = src;
@@ -21,7 +24,7 @@ Markend.prototype.parse = function(src) {
   this._attr = {};
   this._head = 0;
   this._tail = -1;
-	for (; !this.eof(); this.matchLine());
+  for (; !this.eof(); this.matchLine());
   this.endChunk();
   return this._ast;
 };
@@ -33,12 +36,13 @@ Markend.prototype.eof = function() {
 Markend.prototype.matchLine = function() {
   this.matchCharSeq(WS);
   if (this.matchCharCode(BS)) {
-		var func = this.matchIdentifier();
-    this.matchCharSeq(WS);
+    var func = this.matchIdentifier();
+    var attr = {};
+    for (this.matchCharSeq(WS); this.matchAttr(attr); this.matchCharSeq(WS));
     if (this.matchLineEnd()) {
       this.endChunk();
       this._func = func;
-      this._attr = {};
+      this._attr = attr;
       this._head = this._tail = this._p;
       return;
     }
@@ -46,6 +50,24 @@ Markend.prototype.matchLine = function() {
 
   for (; !this.matchLineEnd(); this._p++);
   this._tail = this._p - !this.eof();
+};
+
+Markend.prototype.matchAttr = function(attr) {
+  var pos = this._p;
+  var key = this.matchAttrKey();
+  if (key) {
+    var val = "1";
+    if (this.matchCharCode(EQ)) {
+      val = this.matchAttrVal();
+    }
+    if (!attr[key]) {
+      attr[key] = [];
+    }
+    attr[key].push(val);
+    return true;
+  }
+  this._p = pos;
+  return false;
 };
 
 Markend.prototype.endChunk = function() {
@@ -62,9 +84,21 @@ Markend.prototype.matchLineEnd = function() {
   return this.eof() || (this._src.charCodeAt(this._p) === NL && !!++this._p);
 };
 
+Markend.prototype.matchAttrKey = function() {
+  return this.matchString(NOT_ATTR_KEY);
+};
+
+Markend.prototype.matchAttrVal = function() {
+  return this.matchString(NOT_ATTR_VAL);
+};
+
 Markend.prototype.matchIdentifier = function() {
-	var pos = this._p;
-	return this._src.substr(pos, this.matchCharSeq(NOT_ID, 1));
+  return this.matchString(NOT_ID);
+};
+
+Markend.prototype.matchString = function(blacklist) {
+  var pos = this._p;
+  return this._src.substr(pos, this.matchCharSeq(blacklist, 1));
 };
 
 Markend.prototype.matchCharCode = function(cc) {
