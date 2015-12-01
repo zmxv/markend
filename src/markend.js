@@ -8,6 +8,7 @@ Markend.charmap = function(charset) {
 
 const WS = Markend.charmap(' \t'); // whitespace
 const NOT_ID = Markend.charmap(' \t\n\\.'); // identifier blacklist
+const NOT_SUFFIX = Markend.charmap(' \t\n\\'); // suffix blacklist
 const NOT_ATTR_KEY = Markend.charmap(' \t\n\\='); // attribute key blacklist
 const NOT_ATTR_VAL = Markend.charmap(' \t\n\\'); // attribute value blacklist
 
@@ -21,6 +22,7 @@ Markend.prototype.parse = function(src) {
   this._p = 0;
   this._ast = [];
   this._func = '';
+  this._suff = '';
   this._attr = {};
   this._head = 0;
   this._tail = -1;
@@ -35,13 +37,15 @@ Markend.prototype.eof = function() {
 
 Markend.prototype.matchLine = function() {
   this.matchCharSeq(WS);
-  if (this.matchCharCode(BS)) {
+  if (this.matchString(this._suff) && this.matchCharCode(BS)) {
     var func = this.matchIdentifier();
+    var suff = this.matchSuffix();
     var attr = {};
     for (this.matchCharSeq(WS); this.matchAttr(attr); this.matchCharSeq(WS));
     if (this.matchLineEnd()) {
       this.endChunk();
       this._func = func;
+      this._suff = suff;
       this._attr = attr;
       this._head = this._tail = this._p;
       return;
@@ -85,20 +89,30 @@ Markend.prototype.matchLineEnd = function() {
 };
 
 Markend.prototype.matchAttrKey = function() {
-  return this.matchString(NOT_ATTR_KEY);
+  return this.matchNotBlacklisted(NOT_ATTR_KEY);
 };
 
 Markend.prototype.matchAttrVal = function() {
-  return this.matchString(NOT_ATTR_VAL);
+  return this.matchNotBlacklisted(NOT_ATTR_VAL);
 };
 
 Markend.prototype.matchIdentifier = function() {
-  return this.matchString(NOT_ID);
+  return this.matchNotBlacklisted(NOT_ID);
 };
 
-Markend.prototype.matchString = function(blacklist) {
+Markend.prototype.matchSuffix = function() {
+  return this.matchNotBlacklisted(NOT_SUFFIX);
+};
+
+Markend.prototype.matchNotBlacklisted = function(blacklist) {
   var pos = this._p;
   return this._src.substr(pos, this.matchCharSeq(blacklist, 1));
+};
+
+Markend.prototype.matchString = function(str) {
+  var n = str.length;
+  return !n || (this._p + n <= this._eof &&
+      this._src.substr(this._p, n) === str && !!(this._p += n));
 };
 
 Markend.prototype.matchCharCode = function(cc) {
