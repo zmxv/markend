@@ -1,6 +1,6 @@
 {
   "name": "markend",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Markend parser",
   "main": "src/markend.js",
   "scripts": {

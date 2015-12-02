@@ -8,10 +8,10 @@ Markend.charmap = function(charset) {
 
 const WS = Markend.charmap(' \t'); // whitespace
 const WSNL = Markend.charmap(' \t\n'); // whitespace and new line
-const NOT_ID = Markend.charmap(' \t\n\\.'); // identifier blacklist
-const NOT_SUFFIX = Markend.charmap(' \t\n\\'); // suffix blacklist
-const NOT_ATTR_KEY = Markend.charmap(' \t\n\\='); // attribute key blacklist
-const NOT_ATTR_VAL = Markend.charmap(' \t\n\\'); // attribute value blacklist
+const ID = Markend.charmap(' \t\n\\.'); // escaped characters in identifier
+const SUFFIX = Markend.charmap(' \t\n\\'); // escaped characters in suffix
+const ATTR_KEY = Markend.charmap(' \t\n\\='); // escaped characters in attribute key
+const ATTR_VAL = Markend.charmap(' \t\n\\'); // escaped characters in attribute value
 
 const BS = '\\'.charCodeAt(0); // backslash
 const NL = '\n'.charCodeAt(0); // new line
@@ -39,8 +39,8 @@ Markend.prototype.eof = function() {
 Markend.prototype.matchLine = function() {
   this.matchCharSeq(WS);
   if (this.matchPrefix()) {
-    var func = this.matchIdentifier();
-    var suff = this.matchSuffix();
+    var func = this.matchEscaped(ID);
+    var suff = this.matchEscaped(SUFFIX);
     var attr = {};
     for (this.matchCharSeq(WS); this.matchAttr(attr); this.matchCharSeq(WS));
     if (this.matchLineEnd()) {
@@ -74,11 +74,11 @@ Markend.prototype.matchPrefix = function() {
 
 Markend.prototype.matchAttr = function(attr) {
   var pos = this._p;
-  var key = this.matchAttrKey();
+  var key = this.matchEscaped(ATTR_KEY);
   if (key) {
     var val = "1";
     if (this.matchCharCode(EQ)) {
-      val = this.matchAttrVal();
+      val = this.matchEscaped(ATTR_VAL);
     }
     if (!attr[key]) {
       attr[key] = [];
@@ -104,25 +104,12 @@ Markend.prototype.matchLineEnd = function() {
   return this.eof() || (this._src.charCodeAt(this._p) === NL && !!++this._p);
 };
 
-Markend.prototype.matchAttrKey = function() {
-  return this.matchNotBlacklisted(NOT_ATTR_KEY);
-};
-
-Markend.prototype.matchAttrVal = function() {
-  return this.matchNotBlacklisted(NOT_ATTR_VAL);
-};
-
-Markend.prototype.matchIdentifier = function() {
-  return this.matchNotBlacklisted(NOT_ID);
-};
-
-Markend.prototype.matchSuffix = function() {
-  return this.matchNotBlacklisted(NOT_SUFFIX);
-};
-
-Markend.prototype.matchNotBlacklisted = function(blacklist) {
-  var pos = this._p;
-  return this._src.substr(pos, this.matchCharSeq(blacklist, 1));
+Markend.prototype.matchEscaped = function(blacklist) {
+  var str = this._src.substr(this._p, this.matchCharSeq(blacklist, 1));
+  if (!this.eof() && this.matchCharCode(BS) && !this.eof()) {
+    str += this._src.substr(this._p++, 1) + this.matchEscaped(blacklist);
+  }
+  return str;
 };
 
 Markend.prototype.matchString = function(str) {

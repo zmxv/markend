@@ -19,6 +19,7 @@ test('parse', function(t) {
     'named',
     'attr',
     'suffix',
+    'escaping',
   ];
   tcs.map(function(tc) {
     var input = fs.readFileSync('test/data/' + tc + '.mend', 'utf-8');
