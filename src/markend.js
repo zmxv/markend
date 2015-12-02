@@ -1,3 +1,5 @@
+'use strict';
+
 var Markend = function() {};
 
 Markend.charmap = function(charset) {
@@ -16,6 +18,7 @@ const ATTR_VAL = Markend.charmap(' \t\n\\'); // escaped characters in attribute 
 const BS = '\\'.charCodeAt(0); // backslash
 const NL = '\n'.charCodeAt(0); // new line
 const EQ = '='.charCodeAt(0); // equal sign
+const NESTED = '/'; // function prefix of nested chunks
 
 Markend.prototype.parse = function(src) {
   this._src = src;
@@ -92,10 +95,16 @@ Markend.prototype.matchAttr = function(attr) {
 
 Markend.prototype.endChunk = function() {
   if (this._tail >= 0) {
+    var content = this._src.substring(this._head, this._tail);
+    if (!this._func.indexOf(NESTED)) {
+      // It's probably more efficient to parse nested chunks in a single pass,
+      // but the following one-liner is easier to implement and reason about.
+      content = new Markend().parse(content);
+    }
     this._ast.push({
       f: this._func,
       a: this._attr,
-      c: this._src.substring(this._head, this._tail),
+      c: content,
     });
   }
 };
