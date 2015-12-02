@@ -7,6 +7,7 @@ Markend.charmap = function(charset) {
 };
 
 const WS = Markend.charmap(' \t'); // whitespace
+const WSNL = Markend.charmap(' \t\n'); // whitespace and new line
 const NOT_ID = Markend.charmap(' \t\n\\.'); // identifier blacklist
 const NOT_SUFFIX = Markend.charmap(' \t\n\\'); // suffix blacklist
 const NOT_ATTR_KEY = Markend.charmap(' \t\n\\='); // attribute key blacklist
@@ -37,7 +38,7 @@ Markend.prototype.eof = function() {
 
 Markend.prototype.matchLine = function() {
   this.matchCharSeq(WS);
-  if (this.matchString(this._suff) && this.matchCharCode(BS)) {
+  if (this.matchPrefix()) {
     var func = this.matchIdentifier();
     var suff = this.matchSuffix();
     var attr = {};
@@ -54,6 +55,21 @@ Markend.prototype.matchLine = function() {
 
   for (; !this.matchLineEnd(); this._p++);
   this._tail = this._p - !this.eof();
+};
+
+Markend.prototype.matchPrefix = function() {
+  if (!this._suff) {
+    return this.matchCharCode(BS);
+  }
+  if (this.matchString(this._suff)) {
+    var pos = this._p;
+    this.matchCharSeq(WSNL);
+    if (this.matchCharCode(BS)) {
+      return true;
+    }
+    this._p = pos;
+  }
+  return false;
 };
 
 Markend.prototype.matchAttr = function(attr) {
@@ -111,8 +127,8 @@ Markend.prototype.matchNotBlacklisted = function(blacklist) {
 
 Markend.prototype.matchString = function(str) {
   var n = str.length;
-  return !n || (this._p + n <= this._eof &&
-      this._src.substr(this._p, n) === str && !!(this._p += n));
+  return this._p + n <= this._eof &&
+      this._src.substr(this._p, n) === str && !!(this._p += n);
 };
 
 Markend.prototype.matchCharCode = function(cc) {
